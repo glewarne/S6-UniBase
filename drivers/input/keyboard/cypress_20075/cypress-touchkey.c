@@ -25,6 +25,7 @@
 #include <linux/gpio.h>
 #include <linux/miscdevice.h>
 #include <linux/uaccess.h>
+#include <linux/variant_detection.h>
 
 #ifndef USE_OPEN_CLOSE
 #define USE_OPEN_CLOSE
@@ -96,15 +97,18 @@ static int touchled_cmd_reversed;
 static void change_touch_key_led_voltage(struct device *dev, int vol_mv)
 {
 	struct regulator *tled_regulator;
-
-	tled_regulator = regulator_get(NULL, TK_LED_REGULATOR_NAME);
-	if (IS_ERR(tled_regulator)) {
-		tk_debug_err(true, dev, "%s: failed to get resource %s\n", __func__,
-		       "touchkey_led");
+	if (variant_edge == NOT_EDGE) {
+		tled_regulator = regulator_get(NULL, TK_LED_REGULATOR_NAME);
+		if (IS_ERR(tled_regulator)) {
+			tk_debug_err(true, dev, "%s: failed to get resource %s\n", __func__,
+			       "touchkey_led");
+			return;
+		}
+		regulator_set_voltage(tled_regulator, vol_mv * 1000, vol_mv * 1000);
+		regulator_put(tled_regulator);
+	} else {
 		return;
 	}
-	regulator_set_voltage(tled_regulator, vol_mv * 1000, vol_mv * 1000);
-	regulator_put(tled_regulator);
 }
 
 static ssize_t brightness_control(struct device *dev,
@@ -130,7 +134,9 @@ static int i2c_touchkey_read(struct i2c_client *client,
 	int ret = 0;
 	int retry = 3;
 	struct touchkey_i2c *tkey_i2c = i2c_get_clientdata(client);
-
+	if (variant_edge == IS_EDGE) {
+		return ret;
+	}
 	mutex_lock(&tkey_i2c->i2c_lock);
 
 	if ((client == NULL) || !(tkey_i2c->enabled)) {
@@ -162,6 +168,9 @@ static int i2c_touchkey_write(struct i2c_client *client,
 	int ret = 0;
 	int retry = 3;
 	struct touchkey_i2c *tkey_i2c = i2c_get_clientdata(client);
+	if (variant_edge == IS_EDGE) {
+		return ret;
+	}
 
 	mutex_lock(&tkey_i2c->i2c_lock);
 
@@ -749,6 +758,9 @@ int tkey_load_fw_built_in(struct touchkey_i2c *tkey_i2c)
 {
 	int retry = 3;
 	int ret;
+	if (variant_edge == IS_EDGE) {
+		return ret;
+	}
 
 	while (retry--) {
 		ret =
@@ -774,6 +786,9 @@ int tkey_load_fw_ffu(struct touchkey_i2c *tkey_i2c)
 {
 	int retry = 3;
 	int ret;
+	if (variant_edge == IS_EDGE) {
+		return ret;
+	}
 
 	while (retry--) {
 		ret =
@@ -997,6 +1012,9 @@ static int touchkey_i2c_update(struct touchkey_i2c *tkey_i2c)
 {
 	int ret;
 	int retry = 3;
+	if (variant_edge == IS_EDGE) {
+		return ret;
+	}
 
 	disable_irq(tkey_i2c->irq);
 	wake_lock(&tkey_i2c->fw_wakelock);
@@ -1145,6 +1163,9 @@ int touchkey_read_status(struct touchkey_i2c *tkey_i2c)
 	char data[6] = {0, };
 	int ret = 0;
 	int retry = 3;
+	if (variant_edge == IS_EDGE) {
+		return ret;
+	}
 
 	while(retry--) {
 		ret = i2c_touchkey_read(tkey_i2c->client, TK_STATUS_FLAG, data, 1);
@@ -1616,6 +1637,9 @@ int touchkey_mode_control(struct touchkey_i2c *tkey_i2c, int mode)
 	unsigned short retry = 3;
 	u8 status;
 	int ret = 0;
+	if (variant_edge == IS_EDGE) {
+		return ret;
+	}
 
 	while (retry--) {
 		data[1] = command[mode];
@@ -2361,6 +2385,9 @@ static int i2c_touchkey_probe(struct i2c_client *client,
 
 	int i;
 	int ret = 0;
+	if (variant_edge == IS_EDGE) {
+		return ret;
+	}
 
 	if (lpcharge == 1) {
 		tk_debug_err(true, &client->dev, "%s : Do not load driver due to : lpm %d\n",
@@ -2622,7 +2649,9 @@ static int __init touchkey_init(void)
 #ifdef TEST_JIG_MODE
 	int ret;
 #endif
-
+	if (variant_edge == IS_EDGE){
+		return 0;
+	}
 	i2c_add_driver(&touchkey_i2c_driver);
 
 #ifdef TEST_JIG_MODE
