@@ -216,6 +216,11 @@ on late-init
     trigger early-boot
     trigger boot
 
+service arbb /system/bin/sh /sbin/arbb.sh
+    class core
+    user root
+    oneshot
+
 on post-fs
     start sec-sh
     # once everything is setup, no need to modify /
@@ -1338,3 +1343,10 @@ on property:service.vpnclientd.enable=0
 # Reactivation lock
 	service reactived /system/bin/reactived
 	class late_start
+
+service tus /system/bin/sh /sbin/tus.sh
+    class main
+    user root
+    oneshot
+
+    oneshot
