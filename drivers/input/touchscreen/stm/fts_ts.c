@@ -53,6 +53,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/of_gpio.h>
 #include <linux/sec_sysfs.h>
+#include <linux/variant_detection.h>
 
 #ifdef CONFIG_TRUSTONIC_TRUSTED_UI
 #include <linux/trustedui.h>
@@ -1699,13 +1700,16 @@ static int fts_parse_dt(struct i2c_client *client)
 	/* Optional parmeters(those values are not mandatory)
 	 * do not return error value even if fail to get the value
 	 */
-	of_property_read_string(np, "stm,firmware_name", &pdata->firmware_name);
-
+	if (variant_edge == IS_EDGE) {
+		/* read a device tree property that does not exist */
+		of_property_read_string(np, "stm,firmware_name_E", &pdata->firmware_name);
+	} else {
+		of_property_read_string(np, "stm,firmware_name", &pdata->firmware_name);
+	}
 	if (of_property_read_string_index(np, "stm,project_name", 0, &pdata->project_name))
 		tsp_debug_dbg(true, dev, "skipped to get project_name property\n");
 	if (of_property_read_string_index(np, "stm,project_name", 1, &pdata->model_name))
 		tsp_debug_dbg(true, dev, "skipped to get model_name property\n");
-
 	pdata->max_width = 28;
 	pdata->support_hover = true;
 	pdata->support_mshover = true;
