@@ -40,7 +40,6 @@
 #include "es705-uart.h"
 #include "es705-uart-common.h"
 #include "es705-cdev.h"
-#include <linux/variant_detection.h>
 
 #ifdef ES705_FW_LOAD_BUF_SZ
 #undef ES705_FW_LOAD_BUF_SZ
@@ -424,8 +423,7 @@ static int es705_uart_probe_thread(void *ptr)
 {
 	int rc = 0;
 	struct device *dev = (struct device *)ptr;
-	if (variant_aif_required == NO_AIF)
-		return rc;
+
 	rc = es705_uart_open(&es705_priv);
 	if (rc) {
 		dev_err(dev, "%s(): es705_uart_open() failed %d\n", __func__,
